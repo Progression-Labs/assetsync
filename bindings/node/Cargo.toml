@@ -1,0 +1,28 @@
+[package]
+name = "assetsync-node"
+description = "Node-API bindings for assetsync (the npm package `assetsync`)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+publish = false
+
+[lib]
+crate-type = ["cdylib"]
+# A Node-API addon links against the host's symbols at load time: no test binary of its own.
+test = false
+doctest = false
+
+[dependencies]
+anyhow = "1"
+assetsync = { path = "../..", default-features = false }
+napi = { version = "3", default-features = false, features = ["napi4"] }
+napi-derive = "3"
+
+[build-dependencies]
+napi-build = "2"
+
+[lints]
+workspace = true

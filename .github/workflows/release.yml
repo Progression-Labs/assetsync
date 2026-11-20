@@ -1,0 +1,134 @@
+name: release
+
+# Push a tag `v<version>` (the version in Cargo.toml and bindings/node/package.json) to build the
+# addon and the CLI for each platform, test them, and publish:
+#   - npm: `assetsync` plus `assetsync-linux-x64-gnu` and `assetsync-darwin-arm64`
+#     (secret NPM_TOKEN, an automation token; provenance through the OIDC token);
+#   - crates.io: `assetsync` (secret CARGO_REGISTRY_TOKEN);
+#   - a GitHub release with the CLI binaries.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check-version:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: The tag, Cargo.toml and package.json agree
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          cargo_version=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
+          npm_version=$(jq -r .version bindings/node/package.json)
+          echo "tag $tag, Cargo.toml $cargo_version, package.json $npm_version"
+          test "$tag" = "$cargo_version"
+          test "$tag" = "$npm_version"
+
+  build:
+    needs: check-version
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          # The oldest supported Ubuntu runner: the addon then needs only its glibc (2.35).
+          - host: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+          - host: macos-14
+            target: aarch64-apple-darwin
+    runs-on: ${{ matrix.host }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+      - uses: oven-sh/setup-bun@v2
+      - name: Build the addon
+        working-directory: bindings/node
+        run: |
+          bun install --frozen-lockfile
+          bunx napi build --platform --release --target ${{ matrix.target }}
+      - name: Test the addon
+        working-directory: bindings/node
+        run: bun test
+      - name: Build the CLI
+        run: |
+          cargo build --release --locked --bin assetsync --target ${{ matrix.target }}
+          tar -czf assetsync-${{ github.ref_name }}-${{ matrix.target }}.tar.gz \
+            -C target/${{ matrix.target }}/release assetsync
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bindings-${{ matrix.target }}
+          path: bindings/node/*.node
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.target }}
+          path: assetsync-*.tar.gz
+          if-no-files-found: error
+
+  publish-npm:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bindings-*
+          path: bindings/node/artifacts
+      - name: Move the binaries into npm/<platform>
+        working-directory: bindings/node
+        run: |
+          bun install --frozen-lockfile
+          bunx napi artifacts
+          ls -l npm/*/
+      - name: Publish
+        working-directory: bindings/node
+        # prepublishOnly (`napi prepublish`) publishes each platform package and pins them as
+        # optionalDependencies, then the main package goes.
+        run: npm publish --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: true
+
+  publish-crate:
+    needs: build
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo publish --locked -p assetsync
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+
+  github-release:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          merge-multiple: true
+      - name: Release with the CLI binaries
+        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes assetsync-*.tar.gz
+        env:
+          GH_TOKEN: ${{ github.token }}

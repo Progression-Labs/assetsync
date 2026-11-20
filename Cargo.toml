@@ -23,6 +23,7 @@ authors.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 readme = "README.md"
+exclude = [".github", "bindings"]
 keywords = ["assets", "content-addressed", "r2", "sync", "lockfile"]
 categories = ["command-line-utilities", "filesystem"]
 

@@ -1,0 +1,36 @@
+{
+  "name": "assetsync-linux-x64-gnu",
+  "version": "0.1.0",
+  "cpu": [
+    "x64"
+  ],
+  "main": "assetsync.linux-x64-gnu.node",
+  "files": [
+    "assetsync.linux-x64-gnu.node"
+  ],
+  "description": "Content-addressed asset sync: a sha256 lock file, verified downloads from R2 or HTTP, a local hardlinked cache. Node-API bindings to the assetsync crate.",
+  "keywords": [
+    "assets",
+    "content-addressed",
+    "lockfile",
+    "napi-rs",
+    "r2",
+    "sync"
+  ],
+  "author": "Chris Towles",
+  "license": "MIT",
+  "engines": {
+    "node": ">= 18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ChrisTowles/assetsync.git",
+    "directory": "bindings/node"
+  },
+  "os": [
+    "linux"
+  ],
+  "libc": [
+    "glibc"
+  ]
+}

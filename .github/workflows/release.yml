@@ -2,10 +2,11 @@ name: release
 
 # Push a tag `v<version>` (the version in Cargo.toml and bindings/node/package.json) to build the
 # addon and the CLI for each platform, test them, and publish:
-#   - npm: `assetsync` plus `assetsync-linux-x64-gnu` and `assetsync-darwin-arm64`
-#     (secret NPM_TOKEN, an automation token; provenance through the OIDC token);
-#   - crates.io: `assetsync` (secret CARGO_REGISTRY_TOKEN);
-#   - a GitHub release with the CLI binaries.
+#   - GitHub Packages' npm registry: `@progression-labs/assetsync` plus
+#     `@progression-labs/assetsync-linux-x64-gnu` and `@progression-labs/assetsync-darwin-arm64`,
+#     with the workflow's own GITHUB_TOKEN (no secret to set up);
+#   - a GitHub release on this (private) repo with the CLI binaries.
+# The crate is `publish = false`: zero takes it as a git dependency.
 
 on:
   push:
@@ -81,14 +82,15 @@ jobs:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
-      id-token: write
+      packages: write
     steps:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
+          registry-url: https://npm.pkg.github.com
+          scope: "@progression-labs"
       - uses: actions/download-artifact@v4
         with:
           pattern: bindings-*
@@ -99,24 +101,14 @@ jobs:
           bun install --frozen-lockfile
           bunx napi artifacts
           ls -l npm/*/
-      - name: Publish
+      - name: Publish to GitHub Packages
         working-directory: bindings/node
         # prepublishOnly (`napi prepublish`) publishes each platform package and pins them as
-        # optionalDependencies, then the main package goes.
-        run: npm publish --access public --provenance
+        # optionalDependencies, then the main package goes. Every package.json carries
+        # publishConfig.registry = https://npm.pkg.github.com, so nothing can go to npmjs.org.
+        run: npm publish
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_CONFIG_PROVENANCE: true
-
-  publish-crate:
-    needs: build
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - run: cargo publish --locked -p assetsync
-        env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   github-release:
     needs: build

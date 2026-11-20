@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "assetsync",
+      "name": "@progression-labs/assetsync",
       "devDependencies": {
         "@napi-rs/cli": "3.10.12",
       },

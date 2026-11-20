@@ -1,7 +1,7 @@
 {
-  "name": "assetsync",
+  "name": "@progression-labs/assetsync",
   "version": "0.1.0",
-  "description": "Content-addressed asset sync: a sha256 lock file, verified downloads from R2 or HTTP, a local hardlinked cache. Node-API bindings to the assetsync crate.",
+  "description": "Content-addressed asset sync: a sha256 lock file, verified downloads from R2 or HTTP, a local hardlinked cache. Node-API bindings to the assetsync crate. Proprietary, Progression Labs.",
   "keywords": [
     "assets",
     "content-addressed",
@@ -10,11 +10,11 @@
     "r2",
     "sync"
   ],
-  "license": "MIT",
-  "author": "Chris Towles",
+  "license": "UNLICENSED",
+  "author": "Progression Labs",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ChrisTowles/assetsync.git",
+    "url": "git+https://github.com/Progression-Labs/assetsync.git",
     "directory": "bindings/node"
   },
   "files": [
@@ -48,5 +48,8 @@
   },
   "engines": {
     "node": ">= 18"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
   }
 }

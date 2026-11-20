@@ -1,3 +1,3 @@
-# `assetsync-linux-x64-gnu`
+# `@progression-labs/assetsync-linux-x64-gnu`
 
-This is the **x86_64-unknown-linux-gnu** binary for `assetsync`
+This is the **x86_64-unknown-linux-gnu** binary for `@progression-labs/assetsync`

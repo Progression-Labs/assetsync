@@ -6,8 +6,12 @@ local **cache**; a synced tree is hardlinks into that cache. Large or numerous b
 out of git without Git LFS, every download is verified against the lock, and ten checkouts of the
 same assets cost the disk once.
 
-It is a Rust crate with a CLI and Node-API bindings (the npm package `assetsync`, loadable from
-Bun or Node), extracted from [zero](https://github.com/ChrisTowles/zero)'s `cargo xtask assets`
+Proprietary to Progression Labs, kept in the private repo
+[Progression-Labs/assetsync](https://github.com/Progression-Labs/assetsync) and published only
+to its GitHub Packages registry; not open source and not on npmjs.org or crates.io.
+
+It is a Rust crate with a CLI and Node-API bindings (the npm package
+`@progression-labs/assetsync`, loadable from Bun or Node), extracted from [zero](https://github.com/ChrisTowles/zero)'s `cargo xtask assets`
 and shared by zero (Rust) and [Farwonder](https://github.com/ChrisTowles/learn-app) (Bun
 TypeScript). Linux and macOS only: the cache relies on hardlinks, inode numbers and `flock`.
 
@@ -83,7 +87,8 @@ Range request. A download that does not hash to the lock's sha256 is thrown away
 ## CLI
 
 ```
-cargo install assetsync        # or the release binaries
+cargo install --git https://github.com/Progression-Labs/assetsync assetsync   # needs access to the repo
+# or download a release's CLI tarball: gh release download -R Progression-Labs/assetsync
 ```
 
 ```
@@ -154,7 +159,7 @@ Errors are `anyhow::Error`, with the path and the sha256 in the context.
 ## JavaScript API
 
 ```ts
-import { parseLock, renderLock, pin, sync, verify } from "assetsync";
+import { parseLock, renderLock, pin, sync, verify } from "@progression-labs/assetsync";
 
 const origin = { http: { baseUrl: "https://example.com/clips", token: process.env.CLIPS_TOKEN } };
 
@@ -183,7 +188,33 @@ thread. Options shared by `pin` and `sync`: `origin` (`{ http: { baseUrl, token?
 `Error` whose message carries the reason. Types are in [`bindings/node/index.d.ts`](bindings/node/index.d.ts).
 
 The package ships prebuilt binaries as optional dependencies, so no Rust toolchain is needed to
-install it: `assetsync-linux-x64-gnu` (glibc 2.35+) and `assetsync-darwin-arm64`.
+install it: `@progression-labs/assetsync-linux-x64-gnu` (glibc 2.35+) and
+`@progression-labs/assetsync-darwin-arm64`.
+
+### Installing from GitHub Packages
+
+The packages live in GitHub Packages' npm registry, which needs a token even to read. A consumer
+adds an `.npmrc` beside its `package.json` (Bun reads it too) that maps the scope to the registry
+and takes the token from the environment:
+
+```ini
+@progression-labs:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_PACKAGES_TOKEN}
+```
+
+`GITHUB_PACKAGES_TOKEN` is a token with `read:packages` and access to Progression-Labs: on a dev
+machine, a classic personal access token (or `gh auth token` after `gh auth refresh -s read:packages`);
+in a GitHub Actions workflow of another repo, a secret holding such a token (the workflow's own
+`GITHUB_TOKEN` reads it only if the package grants that repo access in its settings). The token
+is never committed: only the `${...}` reference is. Then:
+
+```
+bun add --exact @progression-labs/assetsync
+```
+
+```ts
+import { sync } from "@progression-labs/assetsync";
+```
 
 ## How zero and Farwonder use it
 
@@ -227,10 +258,17 @@ cd bindings/node && bun install && bun run build:debug && bun test
 
 Bump the version in `Cargo.toml` and `bindings/node/package.json` (and `bindings/node/npm/*/package.json`),
 then push a tag `v<version>`. [`release.yml`](.github/workflows/release.yml) builds the addon and the
-CLI on Linux x64 and macOS arm64, runs the smoke test on each, and publishes the npm packages
-(secret `NPM_TOKEN`), the crate (secret `CARGO_REGISTRY_TOKEN`) and a GitHub release with the CLI
-tarballs.
+CLI on Linux x64 and macOS arm64, runs the smoke test on each, publishes the three npm packages
+to GitHub Packages with the workflow's own `GITHUB_TOKEN` (`packages: write`; no secret to add),
+and makes a GitHub release on this repo with the CLI tarballs. Every `package.json` carries
+`publishConfig.registry = https://npm.pkg.github.com`, so a publish cannot reach npmjs.org. The
+crate is `publish = false`; Rust consumers such as zero take it as a git dependency:
+
+```toml
+assetsync = { git = "https://github.com/Progression-Labs/assetsync", tag = "v0.1.0" }
+```
 
 ## License
 
-MIT, copyright Chris Towles.
+Proprietary. Copyright Progression Labs; all rights reserved. Not licensed for use, copying or
+distribution outside Progression Labs (`"license": "UNLICENSED"`).

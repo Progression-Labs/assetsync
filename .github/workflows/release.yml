@@ -3,7 +3,7 @@ name: release
 # Push a tag `v<version>` (the version in Cargo.toml and bindings/node/package.json) to build the
 # addon and the CLI for each platform, test them, and publish:
 #   - GitHub Packages' npm registry: `@progression-labs/assetsync` plus
-#     `@progression-labs/assetsync-linux-x64-gnu` and `@progression-labs/assetsync-darwin-arm64`,
+#     `@progression-labs/assetsync-linux-x64-gnu` (macOS arm64 returns when the org has a runner),
 #     with the workflow's own GITHUB_TOKEN (no secret to set up);
 #   - a GitHub release on this (private) repo with the CLI binaries.
 # The crate is `publish = false`: zero takes it as a git dependency.
@@ -41,8 +41,6 @@ jobs:
           # The oldest supported Ubuntu runner: the addon then needs only its glibc (2.35).
           - host: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
-          - host: macos-14
-            target: aarch64-apple-darwin
     runs-on: ${{ matrix.host }}
     steps:
       - uses: actions/checkout@v4

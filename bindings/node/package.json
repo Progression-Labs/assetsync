@@ -22,8 +22,7 @@
     "index.d.ts"
   ],
   "os": [
-    "linux",
-    "darwin"
+    "linux"
   ],
   "main": "index.js",
   "types": "index.d.ts",
@@ -42,8 +41,7 @@
   "napi": {
     "binaryName": "assetsync",
     "targets": [
-      "x86_64-unknown-linux-gnu",
-      "aarch64-apple-darwin"
+      "x86_64-unknown-linux-gnu"
     ]
   },
   "engines": {

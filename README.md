@@ -188,8 +188,11 @@ thread. Options shared by `pin` and `sync`: `origin` (`{ http: { baseUrl, token?
 `Error` whose message carries the reason. Types are in [`bindings/node/index.d.ts`](bindings/node/index.d.ts).
 
 The package ships prebuilt binaries as optional dependencies, so no Rust toolchain is needed to
-install it: `@progression-labs/assetsync-linux-x64-gnu` (glibc 2.35+) and
-`@progression-labs/assetsync-darwin-arm64`.
+install it: `@progression-labs/assetsync-linux-x64-gnu` (glibc 2.35+), the only platform built
+today. macOS (`@progression-labs/assetsync-darwin-arm64`) returns when Progression-Labs has a
+macOS runner for private repos: add `aarch64-apple-darwin` back to `napi.targets` and `os`, run
+`bun run create-npm-dirs`, and put `macos-14` back in the CI and release matrices. The library
+and CLI are written for macOS too, but no macOS build has been tested yet.
 
 ### Installing from GitHub Packages
 
@@ -258,7 +261,7 @@ cd bindings/node && bun install && bun run build:debug && bun test
 
 Bump the version in `Cargo.toml` and `bindings/node/package.json` (and `bindings/node/npm/*/package.json`),
 then push a tag `v<version>`. [`release.yml`](.github/workflows/release.yml) builds the addon and the
-CLI on Linux x64 and macOS arm64, runs the smoke test on each, publishes the three npm packages
+CLI on Linux x64 (macOS arm64 returns with a runner), runs the smoke test, publishes the two npm packages
 to GitHub Packages with the workflow's own `GITHUB_TOKEN` (`packages: write`; no secret to add),
 and makes a GitHub release on this repo with the CLI tarballs. Every `package.json` carries
 `publishConfig.registry = https://npm.pkg.github.com`, so a publish cannot reach npmjs.org. The

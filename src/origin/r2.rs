@@ -95,7 +95,9 @@ impl R2 {
             "minting temporary R2 credentials (does the token have R2 access?)",
             || {
                 let resp = agent
-                    .post(&format!("{api}/accounts/{account}/r2/temp-access-credentials"))
+                    .post(&format!(
+                        "{api}/accounts/{account}/r2/temp-access-credentials"
+                    ))
                     .header("Authorization", &auth)
                     .header("Content-Type", "application/json")
                     .send(body.to_string())?;
@@ -148,9 +150,10 @@ impl Origin for R2 {
         let mut out = HashMap::new();
         let mut cursor: Option<String> = None;
         loop {
-            let v = self
-                .retry
-                .run(&self.log, &format!("listing {}", self.config.bucket), || {
+            let v = self.retry.run(
+                &self.log,
+                &format!("listing {}", self.config.bucket),
+                || {
                     let mut req = self
                         .agent
                         .get(&url)
@@ -161,9 +164,12 @@ impl Origin for R2 {
                         req = req.query("cursor", c);
                     }
                     json(req.call()?)
-                })?;
+                },
+            )?;
             for o in v["result"].as_array().map_or(&[][..], |a| &a[..]) {
-                if let Some(sha) = o["key"].as_str().and_then(|k| k.strip_prefix(prefix.as_str()))
+                if let Some(sha) = o["key"]
+                    .as_str()
+                    .and_then(|k| k.strip_prefix(prefix.as_str()))
                 {
                     out.insert(sha.to_string(), o["size"].as_u64().unwrap_or(0));
                 }

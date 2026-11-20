@@ -122,9 +122,9 @@ pub fn pin(lock_path: &Path, opts: &PinOptions) -> Result<PinReport> {
     let mut paths = Vec::new();
     let lock_abs = fs::canonicalize(lock_path).ok();
     let root_abs = fs::canonicalize(root).with_context(|| root.display().to_string())?;
-    let skip = lock_abs.as_deref().and_then(|l| {
-        l.strip_prefix(&root_abs).ok().map(|rel| root.join(rel))
-    });
+    let skip = lock_abs
+        .as_deref()
+        .and_then(|l| l.strip_prefix(&root_abs).ok().map(|rel| root.join(rel)));
     let roots: Vec<String> = if opts.paths.is_empty() {
         vec![String::new()]
     } else {

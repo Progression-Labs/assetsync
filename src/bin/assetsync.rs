@@ -13,7 +13,10 @@ use assetsync::{
 };
 
 #[derive(Parser)]
-#[command(version, about = "Content-addressed asset sync: a sha256 lock, an origin, a local cache")]
+#[command(
+    version,
+    about = "Content-addressed asset sync: a sha256 lock, an origin, a local cache"
+)]
 struct Cli {
     /// The local store. Default: $ASSETSYNC_CACHE, else $XDG_CACHE_HOME/assetsync, else
     /// ~/.cache/assetsync.
@@ -186,7 +189,9 @@ fn run(cli: Cli) -> Result<ExitCode> {
             } else {
                 match origin.open(true, &log)? {
                     Some(o) => Some(o),
-                    None => bail!("pin uploads to an origin: give --http or --r2-account/--r2-bucket, or --no-upload"),
+                    None => bail!(
+                        "pin uploads to an origin: give --http or --r2-account/--r2-bucket, or --no-upload"
+                    ),
                 }
             };
             let r = assetsync::pin(
@@ -236,11 +241,7 @@ fn run(cli: Cli) -> Result<ExitCode> {
             for p in &r.bad {
                 println!("differs {p}");
             }
-            println!(
-                "{} of {} files match the lock",
-                r.ok,
-                r.files
-            );
+            println!("{} of {} files match the lock", r.ok, r.files);
             if !r.is_ok() {
                 return Ok(ExitCode::FAILURE);
             }

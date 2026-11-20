@@ -194,7 +194,10 @@ pub fn render_lock(lock: Lock) -> Result<String> {
     };
     for e in lock.entries {
         if !(e.size >= 0.0 && e.size.fract() == 0.0) {
-            return Err(Error::from_reason(format!("{}: size {} is not a byte count", e.path, e.size)));
+            return Err(Error::from_reason(format!(
+                "{}: size {} is not a byte count",
+                e.path, e.size
+            )));
         }
         out.entries.push(assetsync::Entry {
             sha: e.sha,
@@ -269,7 +272,11 @@ fn origin(
                 c.api_base = a.clone();
             }
             c.endpoint = r.endpoint.clone();
-            Ok(Some(Box::new(assetsync::R2::connect(c, retry, log.clone())?)))
+            Ok(Some(Box::new(assetsync::R2::connect(
+                c,
+                retry,
+                log.clone(),
+            )?)))
         }
         (None, None) => Ok(None),
     }

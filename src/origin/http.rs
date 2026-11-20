@@ -59,15 +59,17 @@ impl Http {
 impl Origin for Http {
     fn list(&self) -> Result<HashMap<String, u64>> {
         let url = self.url("known");
-        let text = self.retry.run(&self.log, "listing the origin's blobs", || {
-            Ok(self
-                .with_auth(self.agent.get(&url))
-                .call()?
-                .body_mut()
-                .with_config()
-                .limit(1 << 30)
-                .read_to_string()?)
-        })?;
+        let text = self
+            .retry
+            .run(&self.log, "listing the origin's blobs", || {
+                Ok(self
+                    .with_auth(self.agent.get(&url))
+                    .call()?
+                    .body_mut()
+                    .with_config()
+                    .limit(1 << 30)
+                    .read_to_string()?)
+            })?;
         let mut out = HashMap::new();
         for line in text.lines().map(str::trim).filter(|l| !l.is_empty()) {
             if !crate::lock::is_sha(line) {

@@ -6,9 +6,11 @@ local **cache**; a synced tree is hardlinks into that cache. Large or numerous b
 out of git without Git LFS, every download is verified against the lock, and ten checkouts of the
 same assets cost the disk once.
 
-Proprietary to Progression Labs, kept in the private repo
-[Progression-Labs/assetsync](https://github.com/Progression-Labs/assetsync) and published only
-to its GitHub Packages registry; not open source and not on npmjs.org or crates.io.
+Public source; Progression Labs. The code is readable at
+[Progression-Labs/assetsync](https://github.com/Progression-Labs/assetsync), but it carries no
+open-source license yet (all rights reserved; see [License](#license)). It is not on npmjs.org or
+crates.io: the Node package installs from a GitHub release tarball (or GitHub Packages), the crate
+from git.
 
 It is a Rust crate with a CLI and Node-API bindings (the npm package
 `@progression-labs/assetsync`, loadable from Bun or Node), extracted from [zero](https://github.com/ChrisTowles/zero)'s `cargo xtask assets`
@@ -187,16 +189,38 @@ thread. Options shared by `pin` and `sync`: `origin` (`{ http: { baseUrl, token?
 `sync` also takes `only`; `pin` takes `root`, `paths`, `merge` and `header`. Failures reject with an
 `Error` whose message carries the reason. Types are in [`bindings/node/index.d.ts`](bindings/node/index.d.ts).
 
-The package ships prebuilt binaries as optional dependencies, so no Rust toolchain is needed to
-install it: `@progression-labs/assetsync-linux-x64-gnu` (glibc 2.35+), the only platform built
-today. macOS (`@progression-labs/assetsync-darwin-arm64`) returns when Progression-Labs has a
-macOS runner for private repos: add `aarch64-apple-darwin` back to `napi.targets` and `os`, run
-`bun run create-npm-dirs`, and put `macos-14` back in the CI and release matrices. The library
-and CLI are written for macOS too, but no macOS build has been tested yet.
+No Rust toolchain is needed to install it: the addon comes prebuilt for Linux x64 (glibc 2.35+),
+the only platform built today. macOS arm64 returns when Progression-Labs has a macOS runner: add
+`aarch64-apple-darwin` back to `napi.targets` and `os`, run `bun run create-npm-dirs`, put
+`macos-14` back in the CI and release matrices, and pack a darwin tarball beside the Linux one.
+The library and CLI are written for macOS too, but no macOS build has been tested yet.
+
+### Installing from the release tarball (no token)
+
+Each release carries `assetsync-node-<version>-linux-x64-gnu.tgz`: the package with the addon
+binary inside, beside `index.js`, and no optional dependencies, so installing it touches no
+registry and needs no token. Depend on its URL, pinned to a version:
+
+```json
+{
+  "dependencies": {
+    "@progression-labs/assetsync": "https://github.com/Progression-Labs/assetsync/releases/download/v0.1.1/assetsync-node-0.1.1-linux-x64-gnu.tgz"
+  }
+}
+```
+
+`bun install` records the tarball's integrity hash in `bun.lock`, so a release asset that changed
+would fail the install. This is how Farwonder installs it.
+
+```ts
+import { sync } from "@progression-labs/assetsync";
+```
 
 ### Installing from GitHub Packages
 
-The packages live in GitHub Packages' npm registry, which needs a token even to read. A consumer
+The same package, with the binary as an optional dependency
+(`@progression-labs/assetsync-linux-x64-gnu`), is also published to GitHub Packages' npm
+registry, which needs a token even to read a public package. A consumer
 adds an `.npmrc` beside its `package.json` (Bun reads it too) that maps the scope to the registry
 and takes the token from the environment:
 
@@ -215,10 +239,6 @@ is never committed: only the `${...}` reference is. Then:
 bun add --exact @progression-labs/assetsync
 ```
 
-```ts
-import { sync } from "@progression-labs/assetsync";
-```
-
 ## How zero and Farwonder use it
 
 **zero** keeps `assets.lock` (the baked tree) and `raw.lock` (machine-only sources) in its R2
@@ -232,8 +252,8 @@ mark, writes the importers' revision as the `importers` header, runs its git hoo
 **Farwonder** keeps its ~8,000 voice clips (MP3s of ~10 KB) out of git: `voice.lock` lists them,
 `bun run voice:sync` calls `sync()` with an HTTP origin pointed at the app's public
 content-addressed clip route, and `voice:clips` calls `pin()` after generating new clips, with a
-token that lets it upload. The package is pinned exactly in `bun.lock`, and the scripts stay
-Bun TypeScript.
+token that lets it upload. It depends on the release tarball's URL (pinned, with its integrity
+in `bun.lock`), so its CI needs no token to install it, and the scripts stay Bun TypeScript.
 
 ## Left out of zero's version
 
@@ -263,15 +283,18 @@ Bump the version in `Cargo.toml` and `bindings/node/package.json` (and `bindings
 then push a tag `v<version>`. [`release.yml`](.github/workflows/release.yml) builds the addon and the
 CLI on Linux x64 (macOS arm64 returns with a runner), runs the smoke test, publishes the two npm packages
 to GitHub Packages with the workflow's own `GITHUB_TOKEN` (`packages: write`; no secret to add),
-and makes a GitHub release on this repo with the CLI tarballs. Every `package.json` carries
+and makes a GitHub release with the CLI tarballs and `assetsync-node-<version>-linux-x64-gnu.tgz`
+(packed with the binary inside and its install from that file checked under Bun and Node before
+the release is made). Every `package.json` carries
 `publishConfig.registry = https://npm.pkg.github.com`, so a publish cannot reach npmjs.org. The
 crate is `publish = false`; Rust consumers such as zero take it as a git dependency:
 
 ```toml
-assetsync = { git = "https://github.com/Progression-Labs/assetsync", tag = "v0.1.0" }
+assetsync = { git = "https://github.com/Progression-Labs/assetsync", tag = "v0.1.1" }
 ```
 
 ## License
 
-Proprietary. Copyright Progression Labs; all rights reserved. Not licensed for use, copying or
-distribution outside Progression Labs (`"license": "UNLICENSED"`).
+Public source; Progression Labs. Copyright Progression Labs; all rights reserved. No open-source
+license has been chosen yet, so none is granted (`"license": "UNLICENSED"`): reading the code is
+fine, but using, copying or distributing it outside Progression Labs needs permission.

@@ -5,7 +5,8 @@ name: release
 #   - GitHub Packages' npm registry: `@progression-labs/assetsync` plus
 #     `@progression-labs/assetsync-linux-x64-gnu` (macOS arm64 returns when the org has a runner),
 #     with the workflow's own GITHUB_TOKEN (no secret to set up);
-#   - a GitHub release on this (private) repo with the CLI binaries.
+#   - a GitHub release with the CLI binaries and `assetsync-node-<version>-linux-x64-gnu.tgz`,
+#     a self-contained npm tarball that installs from its URL with no registry or token.
 # The crate is `publish = false`: zero takes it as a git dependency.
 
 on:
@@ -64,6 +65,44 @@ jobs:
           cargo build --release --locked --bin assetsync --target ${{ matrix.target }}
           tar -czf assetsync-${{ github.ref_name }}-${{ matrix.target }}.tar.gz \
             -C target/${{ matrix.target }}/release assetsync
+      - name: Pack a self-contained tarball of the addon
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        # The binary sits beside index.js, where the loader looks first, and the packed
+        # package.json has no optionalDependencies or scripts: installing it from the release URL
+        # touches no registry and needs no token.
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          pack="$RUNNER_TEMP/pack"
+          mkdir -p "$pack"
+          cp bindings/node/index.js bindings/node/index.d.ts bindings/node/assetsync.linux-x64-gnu.node "$pack/"
+          jq 'del(.optionalDependencies, .devDependencies, .scripts, .publishConfig)
+              | .files += ["assetsync.linux-x64-gnu.node"]' bindings/node/package.json > "$pack/package.json"
+          (cd "$pack" && npm pack --pack-destination "$GITHUB_WORKSPACE")
+          mv "progression-labs-assetsync-$version.tgz" "assetsync-node-$version-linux-x64-gnu.tgz"
+          tar tzvf "assetsync-node-$version-linux-x64-gnu.tgz"
+      - name: Install the tarball into an empty project and load it
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          tgz="$PWD/assetsync-node-${GITHUB_REF_NAME#v}-linux-x64-gnu.tgz"
+          app="$RUNNER_TEMP/consumer"
+          mkdir -p "$app"
+          cd "$app"
+          echo '{"name":"consumer","private":true}' > package.json
+          bun add "$tgz"
+          cat > load.js <<'EOF'
+          const a = require("@progression-labs/assetsync");
+          const lock = a.parseLock("# k v\n");
+          if (lock.header[0].key !== "k") throw new Error("parseLock gave the wrong header");
+          console.log("loaded:", Object.keys(a).join(" "));
+          EOF
+          bun load.js
+          node load.js
+      - uses: actions/upload-artifact@v4
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        with:
+          name: node-tgz
+          path: assetsync-node-*.tgz
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: bindings-${{ matrix.target }}
@@ -118,7 +157,13 @@ jobs:
         with:
           pattern: cli-*
           merge-multiple: true
-      - name: Release with the CLI binaries
-        run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes assetsync-*.tar.gz
+      - uses: actions/download-artifact@v4
+        with:
+          name: node-tgz
+      - name: Release with the CLI binaries and the addon tarball
+        run: |
+          ls -l
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes \
+            assetsync-*.tar.gz assetsync-node-*.tgz
         env:
           GH_TOKEN: ${{ github.token }}

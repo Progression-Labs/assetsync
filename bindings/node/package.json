@@ -1,6 +1,6 @@
 {
   "name": "@progression-labs/assetsync",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Content-addressed asset sync: a sha256 lock file, verified downloads from R2 or HTTP, a local hardlinked cache. Node-API bindings to the assetsync crate. Proprietary, Progression Labs.",
   "keywords": [
     "assets",

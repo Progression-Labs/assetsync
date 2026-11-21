@@ -209,8 +209,11 @@ registry and needs no token. Depend on its URL, pinned to a version:
 }
 ```
 
-`bun install` records the tarball's integrity hash in `bun.lock`, so a release asset that changed
-would fail the install. This is how Farwonder installs it.
+This is how Farwonder installs it. Bun (1.3) records only the URL in `bun.lock`, not an
+integrity hash, and a release asset can be replaced by anyone with write access to this repo. A
+consumer that wants the bytes pinned checks the tarball against the sha512 of the release it
+reviewed (npm-style, `sha512-<base64>`; `openssl dgst -sha512 -binary <tgz> | base64 -w0`), for
+example in its supply-chain check.
 
 ```ts
 import { sync } from "@progression-labs/assetsync";
@@ -252,8 +255,9 @@ mark, writes the importers' revision as the `importers` header, runs its git hoo
 **Farwonder** keeps its ~8,000 voice clips (MP3s of ~10 KB) out of git: `voice.lock` lists them,
 `bun run voice:sync` calls `sync()` with an HTTP origin pointed at the app's public
 content-addressed clip route, and `voice:clips` calls `pin()` after generating new clips, with a
-token that lets it upload. It depends on the release tarball's URL (pinned, with its integrity
-in `bun.lock`), so its CI needs no token to install it, and the scripts stay Bun TypeScript.
+token that lets it upload. It depends on the release tarball's URL, pinned to a version (with the
+tarball's sha512 checked on its side, since `bun.lock` does not record one), so its CI needs no
+token to install it, and the scripts stay Bun TypeScript.
 
 ## Left out of zero's version
 

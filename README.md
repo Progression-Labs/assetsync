@@ -280,7 +280,8 @@ cd bindings/node && bun install && bun run build:debug && bun test
 ## Releasing
 
 Bump the version in `Cargo.toml` and `bindings/node/package.json` (and `bindings/node/npm/*/package.json`),
-then push a tag `v<version>`. [`release.yml`](.github/workflows/release.yml) builds the addon and the
+run `bun run build:debug` in `bindings/node` (the generated `index.js` carries the version, and CI
+fails if the committed copy is stale), commit, and once CI is green push a tag `v<version>`. [`release.yml`](.github/workflows/release.yml) builds the addon and the
 CLI on Linux x64 (macOS arm64 returns with a runner), runs the smoke test, publishes the two npm packages
 to GitHub Packages with the workflow's own `GITHUB_TOKEN` (`packages: write`; no secret to add),
 and makes a GitHub release with the CLI tarballs and `assetsync-node-<version>-linux-x64-gnu.tgz`
